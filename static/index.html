@@ -10,12 +10,12 @@
     <link rel="stylesheet" href="./index.css"/>
     <script src="./vant.min.js"></script>
     <script src="./axios.min.js"></script>
+    <script src="./NoSleep.min.js"></script>
 
     <style>
         * {
             margin: 0;
             padding: 0;
-
         }
 
         body {
@@ -115,6 +115,7 @@
 
 </div>
 <script>
+    const noSleep = new NoSleep();
     const {ref, reactive, onMounted} = Vue;
     const App = {
 
@@ -140,7 +141,7 @@
                 });
             }
 
-
+            let alwaysLight = false;
             //
             // 切换直播状态
             //
@@ -148,6 +149,12 @@
             let streamPressTimer = null;
             let streamHit = "开启"
             const handleStreamTouchStart = () => {
+                // 保持屏幕常亮
+                if (!alwaysLight) {
+                    noSleep.enable();
+                    alwaysLight = true;
+                }
+
                 if (loadingSwitchStream.value) {
                     return
                 }
