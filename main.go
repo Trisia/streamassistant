@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -35,13 +37,12 @@ func main() {
 	defer logWriter.Close()
 	logger.SetOutput(io.MultiWriter(logWriter, os.Stdout))
 
-	app := fiber.New()
-	//app.Use(filesystem.New(filesystem.Config{
-	//	//Root:       http.FS(viewsFS),
-	//	//PathPrefix: "static",
-	//	Root: http.FS(os.DirFS("./static")),
-	//}))
-	app.Static("/static", "./static")
+	app := fiber.New(fiber.Config{DisableStartupMessage: true})
+	app.Use("/static", filesystem.New(filesystem.Config{
+		Root:       http.FS(viewsFS),
+		PathPrefix: "static",
+	}))
+	//app.Static("/static", "./static")
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Redirect(fmt.Sprintf("/static/index.html?ts=%d", time.Now().Unix()))
 	})
@@ -97,8 +98,9 @@ func main() {
 
 		return c.JSON(micSwitch)
 	})
-
-	_ = app.Listen(":80")
+	addr := ":80"
+	log.Printf("Stream Assistant Start at http://127.0.0.1%s\n", addr)
+	_ = app.Listen(addr)
 }
 
 // 截图
