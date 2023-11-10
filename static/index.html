@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Cliven的直播助手</title>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <!-- Import Vue 3 -->
+    <script src="./vue.global.js"></script>
+    <link rel="stylesheet" href="./index.css"/>
+    <script src="./vant.min.js"></script>
+    <script src="./axios.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+
+        }
+
+        body {
+            height: 100vh;
+            display: flex;
+            /*登录框水平垂直居中*/
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f8f8;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+
+            overflow-y: hidden;
+        }
+
+        #app {
+            width: 100%;
+            margin: -6rem 30px 0 30px;
+        }
+
+        .switch-button {
+            width: 100%;
+            height: 150px;
+            font-size: 1.8rem;
+        }
+
+    </style>
+</head>
+<body>
+<div id="app">
+    <div v-if="state.streamSwitch == false">
+        <van-button
+                :loading="loadingSwitchStream"
+                loading-text="直播开启..."
+                type="primary" class="switch-button" icon="play"
+                @touchstart="handleStreamTouchStart"
+                @touchend="handleStreamTouchEnd">
+            开始直播
+        </van-button>
+    </div>
+    <div v-else>
+        <div>
+            <van-button
+                    :loading="loadingSwitchStream"
+                    loading-text="直播关闭..."
+                    type="danger" class="switch-button" icon="stop"
+                    @touchstart="handleStreamTouchStart"
+                    @touchend="handleStreamTouchEnd">
+                关闭直播
+            </van-button>
+        </div>
+        <div style="margin-top: 1.5rem">
+            <van-button
+                    :loading="loadingSwitchRecord"
+                    loading-text="录制停止..."
+                    v-show="!state.recordSwitch" icon="play" type="primary"
+                    class="switch-button"
+                    @touchstart="handleRecordTouchStart"
+                    @touchend="handleStreamTouchEnd">
+                开始录制
+            </van-button>
+            <van-button
+                    :loading="loadingSwitchRecord"
+                    loading-text="录制开启..."
+                    v-show="state.recordSwitch" icon="pause" type="warning"
+                    class="switch-button"
+                    @touchstart="handleRecordTouchStart"
+                    @touchend="handleRecordTouchEnd">
+                停止录制
+            </van-button>
+        </div>
+        <div style="margin-top: 1.5rem">
+            <van-button
+                    loading-text="截图..."
+                    :loading="loadingCapture"
+                    plain type="primary" class="switch-button" icon="photograph"
+                    @click="handleCapture">
+                截图
+            </van-button>
+        </div>
+        <div style="margin-top: 1.5rem">
+            <van-button
+                    :loading="loadingSwitchMic"
+                    v-show="state.micSwitch" plain type="primary" class="switch-button" icon="volume"
+                    @click="handleSwitchMic">
+                麦克恢复
+            </van-button>
+            <van-button
+                    :loading="loadingSwitchMic"
+                    v-show="!state.micSwitch" plain type="default" class="switch-button" icon="cross"
+                    @click="handleSwitchMic">
+                麦克静音
+            </van-button>
+        </div>
+    </div>
+
+
+</div>
+<script>
+    const {ref, reactive, onMounted} = Vue;
+    const App = {
+
+        setup() {
+            const loadingCapture = ref(false);
+            const loadingSwitchMic = ref(false);
+            const loadingSwitchRecord = ref(false);
+            const loadingSwitchStream = ref(false);
+
+
+            const state = reactive({
+                micSwitch: true, recordSwitch: false, streamSwitch: false
+            });
+            onMounted(() => {
+                syncState();
+            });
+
+            const syncState = () => {
+                axios.get('/switch-state').then(({data}) => {
+                    state.micSwitch = data.micSwitch;
+                    state.recordSwitch = data.recordSwitch;
+                    state.streamSwitch = data.streamSwitch;
+                });
+            }
+
+
+            //
+            // 切换直播状态
+            //
+            const streamPressCountdown = ref(0);
+            let streamPressTimer = null;
+            let streamHit = "开启"
+            const handleStreamTouchStart = () => {
+                if (loadingSwitchStream.value) {
+                    return
+                }
+                if (state.streamSwitch) {
+                    streamHit = "关闭"
+                } else {
+                    streamHit = "开启"
+                }
+                streamPressCountdown.value = 3;
+                if (streamPressTimer) {
+                    clearInterval(streamPressTimer);
+                }
+                vant.showToast({message: `直播将在 ${streamPressCountdown.value} 秒后${streamHit}`, duration: 500});
+                streamPressTimer = setInterval(() => {
+                    window.navigator.vibrate && window.navigator.vibrate([30]);
+                    streamPressCountdown.value--;
+                    if (streamPressCountdown.value <= 0) {
+                        clearInterval(streamPressTimer);
+                        doSwitchStream();
+                    } else {
+                        vant.showToast({
+                            message: `直播将在 ${streamPressCountdown.value} 秒后${streamHit}`,
+                            duration: 500
+                        });
+                    }
+                }, 1000);
+            }
+            const handleStreamTouchEnd = () => {
+                if (streamPressTimer) {
+                    clearInterval(streamPressTimer);
+                }
+                streamPressCountdown.value = -1;
+            }
+            const doSwitchStream = () => {
+                loadingSwitchStream.value = true;
+                axios.get('/stream-switch').then(({data}) => {
+                    state.streamSwitch = data;
+                    vant.showToast({message: `直播已${streamHit}！`, duration: 1500});
+                    window.navigator.vibrate && window.navigator.vibrate(1000);
+                    syncState();
+                }).catch((e) => {
+                    console.log(`直播${streamHit}异常：`, e)
+                }).finally(() => {
+                    loadingSwitchStream.value = false;
+                });
+            }
+
+            //
+            // 切换录制状态
+            //
+            const recordPressCountdown = ref(0);
+            let recordPressTimer = null;
+            let recordHit = "开始"
+            const handleRecordTouchStart = () => {
+                if (loadingSwitchRecord.value) {
+                    return
+                }
+                if (state.recordSwitch) {
+                    recordHit = "停止"
+                } else {
+                    recordHit = "开始"
+                }
+                recordPressCountdown.value = 1;
+                if (recordPressTimer) {
+                    clearInterval(recordPressTimer);
+                }
+                vant.showToast({message: `录制将在 ${recordPressCountdown.value} 秒后${recordHit}`, duration: 500});
+                recordPressTimer = setInterval(() => {
+                    window.navigator.vibrate && window.navigator.vibrate([30]);
+                    recordPressCountdown.value--;
+                    if (recordPressCountdown.value <= 0) {
+                        clearInterval(recordPressTimer);
+                        doSwitchRecord();
+                    } else {
+                        vant.showToast({
+                            message: `录制将在 ${recordPressCountdown.value} 秒后${recordHit}`,
+                            duration: 500
+                        });
+                    }
+                }, 1000);
+            }
+            const handleRecordTouchEnd = () => {
+                if (recordPressTimer) {
+                    clearInterval(recordPressTimer);
+                }
+                recordPressCountdown.value = -1;
+            }
+            const doSwitchRecord = () => {
+                loadingSwitchRecord.value = true;
+                axios.get('/record-switch').then(({data}) => {
+                    state.recordSwitch = data;
+                    vant.showToast({message: `录制已${recordHit}！`, duration: 1500});
+                    window.navigator.vibrate([300, 50, 300]);
+                    syncState();
+                }).catch((e) => {
+                    console.log(`录制${recordHit}异常：`, e)
+                }).finally(() => {
+                    loadingSwitchRecord.value = false;
+                });
+            }
+
+
+            //
+            // 截图
+            //
+            const handleCapture = () => {
+                loadingCapture.value = true;
+                axios.get('/capture-screen').then(({data}) => {
+                    vant.showSuccessToast({message: '截图成功', duration: 500});
+                    window.navigator.vibrate([30]);
+                }).catch((e) => {
+                    console.log("截图异常：", e)
+                }).finally(() => {
+                    loadingCapture.value = false;
+                });
+            }
+
+            //
+            // 麦克风
+            //
+            const handleSwitchMic = () => {
+                loadingSwitchMic.value = true;
+                axios.get('/mic-switch').then(({data}) => {
+                    if (data) {
+                        vant.showToast({message: '麦克风 已打开', duration: 500});
+                        window.navigator.vibrate && window.navigator.vibrate([100, 100, 100]);
+                    } else {
+                        vant.showToast({message: '麦克风 已关闭', duration: 500});
+                        window.navigator.vibrate && window.navigator.vibrate([600]);
+                    }
+                    syncState();
+                }).catch((e) => {
+                    console.log("麦克切换异常：", e)
+                }).finally(() => {
+                    loadingSwitchMic.value = false;
+                });
+            }
+
+            return {
+                state,
+                loadingCapture, loadingSwitchMic, loadingSwitchRecord, loadingSwitchStream,
+                handleStreamTouchStart, handleStreamTouchEnd,
+                handleRecordTouchStart, handleRecordTouchEnd,
+                handleCapture,
+                handleSwitchMic,
+            }
+        },
+    };
+    const app = Vue.createApp(App);
+    app.use(vant);
+    app.use(vant.Lazyload);
+    app.mount('#app');
+</script>
+</body>
+</html>
