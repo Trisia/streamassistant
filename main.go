@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"flag"
 	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/gofiber/fiber/v2"
@@ -11,6 +12,8 @@ import (
 	"path/filepath"
 	"time"
 )
+
+const Version = "1.0.1"
 
 var ImagePath = "截图"
 var LogPaths = "logs"
@@ -25,7 +28,15 @@ var (
 //go:embed static
 var viewsFS embed.FS
 
+var verFlag = flag.Bool("v", false, "show version")
+
 func main() {
+	flag.Parse()
+	if *verFlag {
+		fmt.Printf("\nStrean Assustant Version: %s\n", Version)
+		return
+	}
+
 	_ = os.Mkdir(ImagePath, os.ModePerm)
 	_ = os.Mkdir(LogPaths, os.ModePerm)
 	logger := log.Default()
@@ -101,7 +112,7 @@ func main() {
 		return c.JSON(micSwitch)
 	})
 	addr := ":80"
-	log.Printf("Stream Assistant Start at http://127.0.0.1%s\n", addr)
+	log.Printf("Stream Assistant V%s Start at http://127.0.0.1%s\n", Version, addr)
 	_ = app.Listen(addr)
 }
 
