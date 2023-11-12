@@ -21,94 +21,138 @@
         body {
             height: 100vh;
             display: flex;
-            /*登录框水平垂直居中*/
+            /*!*登录框水平垂直居中*!*/
             justify-content: center;
             align-items: center;
             background-color: #f8f8f8;
             -webkit-font-smoothing: antialiased;
-            overflow-x: hidden;
-
-            overflow-y: hidden;
+            /*overflow-y: hidden;*/
         }
 
         #app {
             width: 100%;
-            margin: -6rem 30px 0 30px;
+            margin: 30px;
         }
 
         .switch-button {
             width: 100%;
-            height: 150px;
+            height: 100px;
             font-size: 1.8rem;
         }
 
+        .always-light {
+            padding: 3rem;
+            font-size: 1.8rem;
+            border-radius: 3px;
+            color: #70b6fc;
+            border: 1px solid #70b6fc;
+            outline: none;
+            background-color: #FFFFFF;
+        }
+
+        .always-light:hover {
+            background-color: #70b6fc;
+            color: #FFFFFF;
+        }
+
+        .stream-duration {
+            width: 100%;
+            text-align: center;
+            font-size: 3rem;
+            border-radius: 3px;
+            border: 1px solid #000;
+            box-sizing: border-box;
+            font-family: Monospaced;
+        }
     </style>
 </head>
 <body>
 <div id="app">
-    <div v-if="state.streamSwitch == false">
-        <van-button
-                :loading="loadingSwitchStream"
-                loading-text="直播开启..."
-                type="primary" class="switch-button" icon="play"
-                @touchstart="handleStreamTouchStart"
-                @touchend="handleStreamTouchEnd">
-            开始直播
-        </van-button>
+    <div v-show="!alwaysLight" style="text-align: center">
+        <input type="button" ref="alwaysLightRef" value="开启屏幕常亮" class="always-light">
     </div>
-    <div v-else>
-        <div>
+    <div v-show="alwaysLight">
+        <div v-if="state.streamSwitch == false">
             <van-button
                     :loading="loadingSwitchStream"
-                    loading-text="直播关闭..."
-                    type="danger" class="switch-button" icon="stop"
+                    loading-text="直播开启..."
+                    type="primary" class="switch-button" icon="play"
                     @touchstart="handleStreamTouchStart"
                     @touchend="handleStreamTouchEnd">
-                关闭直播
+                开始直播
             </van-button>
         </div>
-        <div style="margin-top: 1.5rem">
-            <van-button
-                    :loading="loadingSwitchRecord"
-                    loading-text="录制停止..."
-                    v-show="!state.recordSwitch" icon="play" type="primary"
-                    class="switch-button"
-                    @touchstart="handleRecordTouchStart"
-                    @touchend="handleStreamTouchEnd">
-                开始录制
-            </van-button>
-            <van-button
-                    :loading="loadingSwitchRecord"
-                    loading-text="录制开启..."
-                    v-show="state.recordSwitch" icon="pause" type="warning"
-                    class="switch-button"
-                    @touchstart="handleRecordTouchStart"
-                    @touchend="handleRecordTouchEnd">
-                停止录制
-            </van-button>
-        </div>
-        <div style="margin-top: 1.5rem">
-            <van-button
-                    loading-text="截图..."
-                    :loading="loadingCapture"
-                    plain type="primary" class="switch-button" icon="photograph"
-                    @click="handleCapture">
-                截图
-            </van-button>
-        </div>
-        <div style="margin-top: 1.5rem">
-            <van-button
-                    :loading="loadingSwitchMic"
-                    v-show="state.micSwitch" plain type="primary" class="switch-button" icon="volume"
-                    @click="handleSwitchMic">
-                麦克恢复
-            </van-button>
-            <van-button
-                    :loading="loadingSwitchMic"
-                    v-show="!state.micSwitch" plain type="default" class="switch-button" icon="cross"
-                    @click="handleSwitchMic">
-                麦克静音
-            </van-button>
+        <div v-else>
+            <div style="display: flex;justify-content: space-between;font-size: 1.8rem;font-family: Monospaced;">
+                <div>当前时间</div>
+                <div>{{now}}</div>
+            </div>
+            <div style="margin-top: 1rem">
+                <van-button
+                        :loading="loadingSwitchStream"
+                        loading-text="直播关闭..."
+                        type="danger" class="switch-button" icon="stop"
+                        @touchstart="handleStreamTouchStart"
+                        @touchend="handleStreamTouchEnd">
+                    关闭直播
+                </van-button>
+            </div>
+            <div style="margin-top: 1.5rem">
+                <van-button
+                        :loading="loadingSwitchRecord"
+                        loading-text="录制停止..."
+                        v-show="!state.recordSwitch" icon="play" type="primary"
+                        class="switch-button"
+                        @touchstart="handleRecordTouchStart"
+                        @touchend="handleStreamTouchEnd">
+                    开始录制
+                </van-button>
+                <van-button
+                        :loading="loadingSwitchRecord"
+                        loading-text="录制开启..."
+                        v-show="state.recordSwitch" icon="pause" type="warning"
+                        class="switch-button"
+                        @touchstart="handleRecordTouchStart"
+                        @touchend="handleRecordTouchEnd">
+                    停止录制
+                </van-button>
+            </div>
+            <div style="margin-top: 2rem">
+                <van-button
+                        loading-text="截图..."
+                        :loading="loadingCapture"
+                        plain type="primary" class="switch-button" icon="photograph"
+                        @click="handleCapture">
+                    截图
+                </van-button>
+            </div>
+            <div style="margin-top: 2rem">
+                <van-button
+                        :loading="loadingSwitchMic"
+                        v-show="state.micSwitch" plain type="primary" class="switch-button"
+                        @click="handleSwitchMic">
+                    <template #icon>
+                        <img style="width: 2rem" src="./mic.png" alt="">
+                    </template>
+                    启用状态
+                </van-button>
+                <van-button
+                        :loading="loadingSwitchMic"
+                        v-show="!state.micSwitch" plain type="default" class="switch-button" icon="cross"
+                        @click="handleSwitchMic">
+                    <template #icon>
+                        <img style="width: 2rem" src="./mic-off.png" alt="">
+                    </template>
+                    禁用状态
+                </van-button>
+            </div>
+            <div style="text-align: center">
+                <div style="margin: 10px;font-size: 1rem">开播时间</div>
+                <div class="stream-duration">
+                    <div>{{streamDuration}}</div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -116,32 +160,77 @@
 </div>
 <script>
     const noSleep = new NoSleep();
-    const {ref, reactive, onMounted} = Vue;
+    const {ref, reactive, onMounted, computed} = Vue;
+
     const App = {
 
         setup() {
+            const alwaysLight = ref(true);
             const loadingCapture = ref(false);
             const loadingSwitchMic = ref(false);
             const loadingSwitchRecord = ref(false);
             const loadingSwitchStream = ref(false);
+            const alwaysLightRef = ref(null);
+            const now = ref("00:00:00");
+            const streamDuration = ref("00:00:00");
 
-
+            // 计时器
+            let tick = null;
             const state = reactive({
-                micSwitch: true, recordSwitch: false, streamSwitch: false
+                micSwitch: true, recordSwitch: false, streamSwitch: false, streamAt: 0
             });
+
             onMounted(() => {
                 syncState();
+
+                // 当前时间计时器
+                if (tick) {
+                    clearInterval(tick);
+                } else {
+                    tick = setInterval(() => {
+                        // 当前时间
+                        const date = new Date();
+                        let hours = date.getHours() < 10 ? `0${date.getHours()}` : date.getHours();
+                        let minutes = date.getMinutes() < 10 ? `0${date.getMinutes()}` : date.getMinutes();
+                        let seconds = date.getSeconds() < 10 ? `0${date.getSeconds()}` : date.getSeconds();
+                        now.value = `${hours}:${minutes}:${seconds}`;
+
+                        // 直播时长
+                        if (state.streamAt <= 0) {
+                            return "00:00:00"
+                        } else {
+                            const duration = date.getTime() - state.streamAt;
+                            const dHours = Math.floor(duration / 1000 / 60 / 60);
+                            const dMinutes = Math.floor(duration / 1000 / 60 % 60);
+                            const dSeconds = Math.floor(duration / 1000 % 60);
+                            const h = dHours < 10 ? `0${dHours}` : dHours;
+                            const m = dMinutes < 10 ? `0${dMinutes}` : dMinutes;
+                            const s = dSeconds < 10 ? `0${dSeconds}` : dSeconds;
+                            streamDuration.value = `${h}:${m}:${s}`;
+                        }
+                    }, 1000);
+                }
+
+                // 屏幕常亮触发器
+                alwaysLightRef.value.addEventListener('click', () => {
+                    window.navigator.vibrate && window.navigator.vibrate([100, 100, 100]);
+                    noSleep.enable();
+                    alwaysLight.value = true;
+                    vant.showToast({message: '屏幕常亮已开启', duration: 500});
+                    document.documentElement.requestFullscreen();
+                }, false);
             });
+
 
             const syncState = () => {
                 axios.get('/switch-state').then(({data}) => {
                     state.micSwitch = data.micSwitch;
                     state.recordSwitch = data.recordSwitch;
                     state.streamSwitch = data.streamSwitch;
+                    state.streamAt = data.streamAt;
                 });
             }
 
-            let alwaysLight = false;
             //
             // 切换直播状态
             //
@@ -149,11 +238,6 @@
             let streamPressTimer = null;
             let streamHit = "开启"
             const handleStreamTouchStart = () => {
-                // 保持屏幕常亮
-                if (!alwaysLight) {
-                    noSleep.enable();
-                    alwaysLight = true;
-                }
 
                 if (loadingSwitchStream.value) {
                     return
@@ -194,7 +278,16 @@
                     state.streamSwitch = data;
                     vant.showToast({message: `直播已${streamHit}！`, duration: 1500});
                     window.navigator.vibrate && window.navigator.vibrate(1000);
+                    // 退出全屏
+                    if (data === false) {
+                        if (document.fullscreenElement) {
+                            document.exitFullscreen();
+                        }
+                    } else {
+                        document.documentElement.requestFullscreen();
+                    }
                     syncState();
+
                 }).catch((e) => {
                     console.log(`直播${streamHit}异常：`, e)
                 }).finally(() => {
@@ -293,6 +386,7 @@
                 });
             }
 
+
             return {
                 state,
                 loadingCapture, loadingSwitchMic, loadingSwitchRecord, loadingSwitchStream,
@@ -300,6 +394,8 @@
                 handleRecordTouchStart, handleRecordTouchEnd,
                 handleCapture,
                 handleSwitchMic,
+                alwaysLightRef, alwaysLight,
+                now, streamDuration
             }
         },
     };

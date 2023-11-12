@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -18,9 +16,10 @@ var ImagePath = "截图"
 var LogPaths = "logs"
 
 var (
-	micSwitch    = true
-	recordSwitch = false
-	streamSwitch = false
+	micSwitch          = true
+	recordSwitch       = false
+	streamSwitch       = false
+	streamAt     int64 = 0 // 直播开始时间(Unix毫秒)，0 为未开始
 )
 
 //go:embed static
@@ -38,11 +37,11 @@ func main() {
 	logger.SetOutput(io.MultiWriter(logWriter, os.Stdout))
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	app.Use("/static", filesystem.New(filesystem.Config{
-		Root:       http.FS(viewsFS),
-		PathPrefix: "static",
-	}))
-	//app.Static("/static", "./static")
+	//app.Use("/static", filesystem.New(filesystem.Config{
+	//	Root:       http.FS(viewsFS),
+	//	PathPrefix: "static",
+	//}))
+	app.Static("/static", "./static")
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Redirect(fmt.Sprintf("/static/index.html?ts=%d", time.Now().Unix()))
 	})
@@ -52,6 +51,7 @@ func main() {
 			"micSwitch":    micSwitch,
 			"recordSwitch": recordSwitch,
 			"streamSwitch": streamSwitch,
+			"streamAt":     streamAt,
 		})
 	})
 
@@ -80,7 +80,9 @@ func main() {
 		//time.Sleep(time.Second * 3)
 		if streamSwitch {
 			log.Println("stream switch to: ON")
+			streamAt = time.Now().UnixMilli()
 		} else {
+			streamAt = 0
 			log.Println("stream switch to: OFF")
 		}
 		return c.JSON(streamSwitch)
