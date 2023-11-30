@@ -5,11 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"github.com/go-vgo/robotgo"
+	"github.com/gofiber/contrib/websocket"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
+	"github.com/vtb-link/bianka/live"
+	"github.com/vtb-link/bianka/proto"
 	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
@@ -32,12 +33,37 @@ var viewsFS embed.FS
 
 var verFlag = flag.Bool("v", false, "show version")
 
+// 当前用户
+var currentUser *websocket.Conn
+var dmChan = make(chan []byte, 32)
+
 func main() {
 	flag.Parse()
 	if *verFlag {
 		fmt.Printf("\nStrean Assustant Version: %s\n", Version)
 		return
 	}
+
+	sdkConfig := live.NewConfig(AccessKey, AccessKeySecret, int64(AppId))
+	// 创建sdk实例
+	sdk := live.NewClient(sdkConfig)
+	// app start
+	startResp, err := sdk.AppStart(IdCode)
+	if err != nil {
+		log.Fatal(err)
+	}
+	tk := heartbeatDaemon(sdk, startResp)
+	defer func() {
+		tk.Stop()
+		_ = sdk.AppEnd(startResp.GameInfo.GameID)
+	}()
+
+	// 一键开启websocket
+	wsClient, err := sdk.StartWebsocket(startResp, map[uint32]live.DispatcherHandle{proto.OperationMessage: handleDM}, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer wsClient.Close()
 
 	_ = os.Mkdir(ImagePath, os.ModePerm)
 	_ = os.Mkdir(LogPaths, os.ModePerm)
@@ -50,11 +76,11 @@ func main() {
 	logger.SetOutput(io.MultiWriter(logWriter, os.Stdout))
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
-	app.Use("/static", filesystem.New(filesystem.Config{
-		Root:       http.FS(viewsFS),
-		PathPrefix: "static",
-	}))
-	//app.Static("/static", "./static")
+	//app.Use("/static", filesystem.New(filesystem.Config{
+	//	Root:       http.FS(viewsFS),
+	//	PathPrefix: "static",
+	//}))
+	app.Static("/static", "./static")
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Redirect(fmt.Sprintf("/static/index.html?ts=%d", time.Now().Unix()))
 	})
@@ -113,9 +139,58 @@ func main() {
 
 		return c.JSON(micSwitch)
 	})
+
+	// 弹幕消息通道
+	app.Get("/dm", websocket.New(func(c *websocket.Conn) {
+		if currentUser != nil {
+			// 关闭上一个用户，仅允许一个用户读取弹幕
+			_ = currentUser.Close()
+		}
+		for {
+			data := <-dmChan
+			_ = c.WriteMessage(websocket.TextMessage, data)
+		}
+	}))
+
 	addr := ":80"
 	log.Printf("Stream Assistant V%s Start at http://127.0.0.1%s\n", Version, addr)
 	_ = app.Listen(addr)
+}
+
+// 收到并处理弹幕消息
+func handleDM(msg *proto.Message) error {
+	// 单条消息raw 如果需要自己解析可以使用
+	data := msg.Payload()
+	log.Println(string(data))
+	for {
+		select {
+		case dmChan <- data:
+			return nil
+		default:
+			// 队列满了，丢弃
+			old := <-dmChan
+			log.Println("dm queue full, discard old:", string(old))
+		}
+	}
+}
+
+// 心跳精灵
+func heartbeatDaemon(sdk *live.Client, startResp *live.AppStartResponse) *time.Ticker {
+	// 启用项目心跳 20s一次
+	// see https://open-live.bilibili.com/document/eba8e2e1-847d-e908-2e5c-7a1ec7d9266f
+	tk := time.NewTicker(time.Second * 20)
+	go func() {
+		for {
+			select {
+			case <-tk.C:
+				// 心跳
+				if err := sdk.AppHeartbeat(startResp.GameInfo.GameID); err != nil {
+					log.Println("Heartbeat fail", err)
+				}
+			}
+		}
+	}()
+	return tk
 }
 
 // 截图
