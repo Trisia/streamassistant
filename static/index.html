@@ -63,6 +63,19 @@
             border: 1px solid #000;
             box-sizing: border-box;
             font-family: Monospaced;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 15px;
+            padding-right: 15px;
+            margin-top: 15px;
+        }
+
+        .comment {
+            padding: 5px;
+            position: relative;
+            background: #f8ac09;
+            border-radius: 5px;
         }
     </style>
 </head>
@@ -83,7 +96,7 @@
             </van-button>
         </div>
         <div v-else>
-            <div style="display: flex;justify-content: space-between;font-size: 1.8rem;font-family: Monospaced;">
+            <div style="display: flex;justify-content: space-between;font-size: 25px;font-family: Monospaced;">
                 <div>当前时间</div>
                 <div>{{now}}</div>
             </div>
@@ -147,14 +160,35 @@
                 </van-button>
             </div>
             <div style="text-align: center">
-                <div style="margin: 10px;font-size: 12px">开播时间</div>
-                <div class="stream-duration">
+
+                <div class="stream-duration" >
+                    <div style="font-size: 12px">开播时间</div>
                     <div>{{streamDuration}}</div>
                 </div>
             </div>
 
-            <div style="margin-top: 15px;background-color: #0bc15f;height: 250px">
+            <div style="margin-top: 15px;background-color: #0bc15f;height: 250px;padding: 5px;overflow: scroll">
 
+                <div style="display: flex;margin-top: 10px" v-for=" i in [1,2,3,4,6,7,7,7,7,7,7,7] ">
+                    <div><img
+                            style="border-radius: 50%;"
+                            width="30" height="30"
+                            src="/icon?path=https%3A%2F%2Fi0.hdslb.com%2Fbfs%2Fface%2Ffaff710e724d6ed48d9ab7de1e0c45b9d232e7e8.jpg"
+                            alt=""></div>
+                    <div style="margin-left: 5px">
+                        <div style="margin-bottom: 3px">Cliven</div>
+                        <div class="comment">bbbb</div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 5px;background-color: red;display: flex; align-items: center">
+                <div><img
+                        style="border-radius: 50%;"
+                        width="30" height="30"
+                        src="/icon?path=https%3A%2F%2Fi0.hdslb.com%2Fbfs%2Fface%2Ffaff710e724d6ed48d9ab7de1e0c45b9d232e7e8.jpg"
+                        alt=""></div>
+                <div style="margin: 0 5px 0 5px">Cliven</div>
+                <div class="comment">瓜子 x 3</div>
             </div>
 
         </div>
@@ -242,7 +276,7 @@
             });
 
             // 收到弹幕
-            const handleDM = (event)=>{
+            const handleDM = (event) => {
                 let obj = JSON.parse(event.data);
                 console.log("Message from server:", event.data);
                 console.log(obj);
