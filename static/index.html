@@ -77,6 +77,24 @@
             background: #f8ac09;
             border-radius: 5px;
         }
+
+        .dm-container {
+            margin-top: 10px;
+            background-color: #E4E7ED;
+            height: 250px;
+            padding: 5px 10px;
+            overflow: scroll;
+            border-radius: 3px;
+        }
+
+        .dm-gift {
+            margin-top: 5px;
+            background-color: #409EFF;
+            display: flex;
+            align-items: center;
+            border-radius: 3px;
+            padding: 5px;
+        }
     </style>
 </head>
 <body>
@@ -161,27 +179,26 @@
             </div>
             <div style="text-align: center">
 
-                <div class="stream-duration" >
+                <div class="stream-duration">
                     <div style="font-size: 12px">开播时间</div>
                     <div>{{streamDuration}}</div>
                 </div>
             </div>
-
-            <div style="margin-top: 15px;background-color: #0bc15f;height: 250px;padding: 5px;overflow: scroll">
-
-                <div style="display: flex;margin-top: 10px" v-for=" i in [1,2,3,4,6,7,7,7,7,7,7,7] ">
+            <div class="dm-container" @touchstart="handleDmScrollStart" @touchend="handleDmScrollEnd">
+                <div style="display: flex;" v-for="msg in messages" :key="msg.data.msg_id">
                     <div><img
                             style="border-radius: 50%;"
                             width="30" height="30"
-                            src="/icon?path=https%3A%2F%2Fi0.hdslb.com%2Fbfs%2Fface%2Ffaff710e724d6ed48d9ab7de1e0c45b9d232e7e8.jpg"
+                            :src="'/icon?path=' + encodeURIComponent(msg.data.uface)"
                             alt=""></div>
                     <div style="margin-left: 5px">
-                        <div style="margin-bottom: 3px">Cliven</div>
-                        <div class="comment">bbbb</div>
+                        <div style="margin-bottom: 3px">{{ msg.data.uname }}</div>
+                        <div class="comment">{{ msg.data.msg }}</div>
                     </div>
                 </div>
+                <div ref="msgContainerRef"></div>
             </div>
-            <div style="margin-top: 5px;background-color: red;display: flex; align-items: center">
+            <div class="dm-gift">
                 <div><img
                         style="border-radius: 50%;"
                         width="30" height="30"
@@ -198,12 +215,49 @@
 </div>
 <script>
     const noSleep = new NoSleep();
-    const {ref, reactive, onMounted, computed} = Vue;
+    const {ref, reactive, onMounted, computed, nextTick} = Vue;
 
     const App = {
 
         setup() {
             let socket = null;
+
+            const messages = reactive([])
+
+            setInterval(() => {
+                let msg = {
+                    "data": {
+                        "emoji_img_url": "",
+                        "fans_medal_level": 0,
+                        "fans_medal_name": "",
+                        "fans_medal_wearing_status": false,
+                        "guard_level": 0,
+                        "msg": "123",
+                        "timestamp": 1702549079,
+                        "uid": 759939,
+                        "uname": "Cliven_",
+                        "uface": "https://i0.hdslb.com/bfs/face/faff710e724d6ed48d9ab7de1e0c45b9d232e7e8.jpg",
+                        "dm_type": 0,
+                        "msg_id": "dadbb4d3-bbd1-41de-819c-b6a46da80619",
+                        "room_id": 22219
+                    }, "cmd": "LIVE_OPEN_PLATFORM_DM"
+                }
+                // 若msg.length > 10 则移除第一个元素
+                if (messages.length > 10) {
+                    messages.shift()
+                }
+                msg.data.msg_id = new Date().getTime()
+                messages.push(msg);
+                // console.log(msgContainerRef.value)
+                nextTick(() => {
+                    const el = msgContainerRef.value;
+                    if (el && suppressScroll.value === false) {
+                        el.scrollIntoView({behavior: 'smooth', block: "end"});
+                    }
+                });
+            }, 500);
+
+            const suppressScroll = ref(false);
 
             const alwaysLight = ref(true);
             const loadingCapture = ref(false);
@@ -211,6 +265,7 @@
             const loadingSwitchRecord = ref(false);
             const loadingSwitchStream = ref(false);
             const alwaysLightRef = ref(null);
+            const msgContainerRef = ref(null);
             const now = ref("00:00:00");
             const streamDuration = ref("00:00:00");
 
@@ -447,6 +502,13 @@
                 });
             }
 
+            const handleDmScrollStart = () => {
+                suppressScroll.value = true;
+            }
+            const handleDmScrollEnd = () => {
+                suppressScroll.value = false;
+            }
+
 
             return {
                 state,
@@ -456,7 +518,9 @@
                 handleCapture,
                 handleSwitchMic,
                 alwaysLightRef, alwaysLight,
-                now, streamDuration
+                now, streamDuration,
+                messages, msgContainerRef,
+                handleDmScrollStart, handleDmScrollEnd
             }
         },
     };
