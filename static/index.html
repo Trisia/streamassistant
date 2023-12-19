@@ -9,6 +9,13 @@
     <script src="./vue.global.js"></script>
     <link rel="stylesheet" href="./index.css"/>
     <script src="./vant.min.js"></script>
+
+    <!--    <link-->
+    <!--            rel="stylesheet"-->
+    <!--            href="https://fastly.jsdelivr.net/npm/vant@4/lib/index.css"-->
+    <!--    />-->
+    <!--    <script src="https://fastly.jsdelivr.net/npm/vue@3"></script>-->
+    <!--    <script src="https://fastly.jsdelivr.net/npm/vant@4/lib/vant.min.js"></script>-->
     <script src="./axios.min.js"></script>
     <script src="./NoSleep.min.js"></script>
 
@@ -71,29 +78,42 @@
             margin-top: 15px;
         }
 
-        .comment {
-            padding: 5px;
-            position: relative;
-            background: #f8ac09;
-            border-radius: 5px;
-        }
 
         .dm-container {
             margin-top: 10px;
-            background-color: #E4E7ED;
+            background-color: #F0F2F5;
             height: 250px;
             padding: 5px 10px;
             overflow: scroll;
             border-radius: 3px;
         }
 
-        .dm-gift {
-            margin-top: 5px;
-            background-color: #409EFF;
-            display: flex;
-            align-items: center;
-            border-radius: 3px;
+
+        .dm-comment {
             padding: 5px;
+            position: relative;
+            background: #CDD0D6;
+            border-radius: 5px;
+        }
+
+        .dm-like {
+            padding: 5px;
+            position: relative;
+            border-radius: 5px;
+        }
+
+        .dm-gift {
+            padding: 5px;
+            position: relative;
+            border-radius: 5px;
+        }
+
+        .dm-super-chat {
+            padding: 5px;
+            position: relative;
+            background: #a0cfff;
+            border-radius: 5px;
+            display: flex;
         }
     </style>
 </head>
@@ -185,44 +205,60 @@
                 </div>
             </div>
             <div class="dm-container" @touchstart="handleDmScrollStart" @touchend="handleDmScrollEnd">
-                <div style="display: flex;" v-for="msg in messages" :key="msg.data.msg_id">
+                <div style="display: flex;margin-top: 5px" v-for="msg in messages" :key="msg.data.msg_id">
                     <div><img
                             style="border-radius: 50%;"
                             width="30" height="30"
                             :src="'/icon?path=' + encodeURIComponent(msg.data.uface)"
                             alt=""></div>
-                    <div style="margin-left: 5px">
+                    <div style="margin-left: 5px" >
                         <div style="margin-bottom: 3px">{{ msg.data.uname }}</div>
-                        <div class="comment">{{ msg.data.msg }}</div>
+                        <div v-if="msg.cmd == 'LIVE_OPEN_PLATFORM_DM'" class="dm-comment">{{ msg.data.msg }}</div>
+                        <div v-else-if="msg.cmd == 'LIVE_OPEN_PLATFORM_LIKE'" class="dm-like">
+                            <img width="15" src="like.png" alt="" style="margin-right: 5px">赞 x {{
+                            msg.data.like_count}}
+                        </div>
+                        <div v-else-if="msg.cmd == 'LIVE_OPEN_PLATFORM_SEND_GIFT'" class="dm-gift">
+                            <img width="15"
+                                 :src="'/icon?path=' + encodeURIComponent(msg.data.gift_icon)"
+                                 alt="" style="margin-right: 5px">{{ msg.data.gift_name }} x {{ msg.data.gift_num }}
+                        </div>
+                        <div v-else-if="msg.cmd == 'LIVE_OPEN_PLATFORM_SUPER_CHAT'" class="dm-super-chat">
+                            <van-tag type="danger">¥{{msg.data.rmb}}</van-tag>
+                            <div style="font-weight: 700;margin-left: 5px">{{msg.data.message}}</div>
+                        </div>
                     </div>
                 </div>
                 <div ref="msgContainerRef"></div>
             </div>
-            <div class="dm-gift">
-                <div><img
-                        style="border-radius: 50%;"
-                        width="30" height="30"
-                        src="/icon?path=https%3A%2F%2Fi0.hdslb.com%2Fbfs%2Fface%2Ffaff710e724d6ed48d9ab7de1e0c45b9d232e7e8.jpg"
-                        alt=""></div>
-                <div style="margin: 0 5px 0 5px">Cliven</div>
-                <div class="comment">瓜子 x 3</div>
-            </div>
 
         </div>
     </div>
-
+    <!--    <van-notice-bar color="#1989fa" background="#ecf9ff">-->
+    <!--        <template v-slot:left-icon>-->
+    <!--            <img-->
+    <!--                    style="border-radius: 50%;"-->
+    <!--                    width="30" height="30"-->
+    <!--                    :src="'/icon?path=' + encodeURIComponent(giftMessage.data.uface)"-->
+    <!--                    alt="">-->
+    <!--            <span style="display: inline-block;font-weight: 600;margin: 0 10px">{{giftMessage.data.uname}}:</span>-->
+    <!--        </template>-->
+    <!--        <div>{{}}</div>-->
+    <!--    </van-notice-bar>-->
+    <van-popup v-model:show="showGuard" position="top" :style="{ height: '30%' }" >
+    </van-popup>
 
 </div>
 <script>
     const noSleep = new NoSleep();
     const {ref, reactive, onMounted, computed, nextTick} = Vue;
 
-    const App = {
 
+    const App = {
         setup() {
             let socket = null;
-
-            const messages = reactive([])
+            const showGuard = ref(false);
+            const messages = reactive([]);
 
             setInterval(() => {
                 let msg = {
@@ -242,12 +278,88 @@
                         "room_id": 22219
                     }, "cmd": "LIVE_OPEN_PLATFORM_DM"
                 }
+                msg.data.msg_id = new Date().getTime() + 1
+                messages.push(msg)
+                msg = {
+                    "data": {
+                        "uname": "哔哩哔哩直播",
+                        "uid": 9617619,
+                        "uface": "https://i0.hdslb.com/bfs/face/8f6a614a48a3813d90da7a11894ae56a59396fcd.jpg",
+                        "timestamp": 1685946262,
+                        "like_text": "为主播点赞了",
+                        "like_count": 114,
+                        "fans_medal_wearing_status": false,
+                        "fans_medal_name": "",
+                        "fans_medal_level": 0,
+                        "msg_id": "57a7c676-ff00-4967-bb09-03e800ab0f4d",
+                        "room_id": 1
+                    },
+                    "cmd": "LIVE_OPEN_PLATFORM_LIKE"
+                }
+                msg.data.msg_id = new Date().getTime() + 1
+                messages.push(msg);
+                // msg = {
+                //     "cmd": "LIVE_OPEN_PLATFORM_SEND_GIFT",
+                //     "data": {
+                //         "room_id": 1,//直播间(演播厅模式则为演播厅直播间,非演播厅模式则为收礼直播间)
+                //         "uname": "哔哩哔哩直播",
+                //         "uid": 9617619,
+                //         "uface": "https://i0.hdslb.com/bfs/face/8f6a614a48a3813d90da7a11894ae56a59396fcd.jpg",
+                //         "gift_id": 0,//道具id(盲盒:爆出道具id)
+                //         "gift_name": "爆出道具名",//道具名(盲盒:爆出道具名)
+                //         "gift_num": 11,//赠送道具数量
+                //         "price": 0,//礼物单价(1000 = 1元 = 10电池),盲盒:爆出道具的价值
+                //         "paid": false,//是否是付费道具
+                //         "fans_medal_level": 0,//实际收礼人的勋章信息
+                //         "fans_medal_name": "粉丝勋章名", //粉丝勋章名
+                //         "fans_medal_wearing_status": true,//该房间粉丝勋章佩戴情况
+                //         "guard_level": 0,//room_id对应的大航海等级
+                //         "timestamp": 0,//收礼时间秒级时间戳
+                //         "msg_id": "",//消息唯一id
+                //         "anchor_info": {
+                //             "uid": 0,//收礼主播uid
+                //             "uname": "",//收礼主播昵称
+                //             "uface": "http://i0.hdslb.com/bfs/face/4add3acfc930fcd07d06ea5e10a3a377314141c2.jpg"//收礼主播头像
+                //         },
+                //         "gift_icon": "http://i1.hdslb.com/dksldksldksld.jpg", //道具icon  （新增）
+                //         "combo_gift": true,//是否是combo道具
+                //         "combo_info": { //ex：连击次数100，每个连击是批量送5个 既  5 * 100
+                //             "combo_base_num": 5,//每次连击赠送的道具数量
+                //             "combo_count": 100,//连击次数
+                //             "combo_id": "xxxxxx",//连击id
+                //             "combo_timeout": 3,//连击有效期秒
+                //         }
+                //     }
+                // }
+                // msg.data.msg_id = new Date().getTime() + 2
+                // messages.push(msg);
+                msg = {
+                    "cmd":"LIVE_OPEN_PLATFORM_SUPER_CHAT",
+                    "data":{
+                        "room_id":1,//直播间id
+                        "uname": "哔哩哔哩直播",
+                        "uid": 9617619,
+                        "uface": "https://i0.hdslb.com/bfs/face/8f6a614a48a3813d90da7a11894ae56a59396fcd.jpg",
+                        "message_id":0,//留言id(风控场景下撤回留言需要)
+                        "message":"你好",//留言内容
+                        "msg_id":"",//消息唯一id
+                        "rmb":10,//支付金额(元)
+                        "timestamp":0,//赠送时间秒级
+                        "start_time":0,//生效开始时间
+                        "end_time":0,//生效结束时间
+                        "guard_level": 2, //对应房间大航海登记    (新增)
+                        "fans_medal_level": 26, //对应房间勋章信息  (新增)
+                        "fans_medal_name": "aw4ifC", //对应房间勋章名字  (新增)
+                        "fans_medal_wearing_status": true //该房间粉丝勋章佩戴情况   (新增)
+                    }
+                }
+                msg.data.msg_id = new Date().getTime() + 2
+                messages.push(msg);
+
                 // 若msg.length > 10 则移除第一个元素
-                if (messages.length > 10) {
+                while (messages.length > 10) {
                     messages.shift()
                 }
-                msg.data.msg_id = new Date().getTime()
-                messages.push(msg);
                 // console.log(msgContainerRef.value)
                 nextTick(() => {
                     const el = msgContainerRef.value;
@@ -255,7 +367,8 @@
                         el.scrollIntoView({behavior: 'smooth', block: "end"});
                     }
                 });
-            }, 500);
+                showGuard.value = !showGuard.value;
+            }, 3000);
 
             const suppressScroll = ref(false);
 
@@ -520,13 +633,13 @@
                 alwaysLightRef, alwaysLight,
                 now, streamDuration,
                 messages, msgContainerRef,
-                handleDmScrollStart, handleDmScrollEnd
+                handleDmScrollStart, handleDmScrollEnd,showGuard
             }
         },
     };
     const app = Vue.createApp(App);
     app.use(vant);
-    app.use(vant.Lazyload);
+
     app.mount('#app');
 </script>
 </body>
