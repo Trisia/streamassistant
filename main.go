@@ -7,9 +7,11 @@ import (
 	"github.com/go-vgo/robotgo"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/valyala/fasthttp"
 	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -51,11 +53,11 @@ func main() {
 
 	app := fiber.New(fiber.Config{DisableStartupMessage: true})
 	app.Use(cors.New())
-	//app.Use("/static", filesystem.New(filesystem.Config{
-	//	Root:       http.FS(viewsFS),
-	//	PathPrefix: "static",
-	//}))
-	app.Static("/static", "./static")
+	app.Use("/static", filesystem.New(filesystem.Config{
+		Root:       http.FS(viewsFS),
+		PathPrefix: "static",
+	}))
+	//app.Static("/static", "./static")
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Redirect(fmt.Sprintf("/static/index.html?ts=%d", time.Now().Unix()))
 	})
