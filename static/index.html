@@ -82,7 +82,7 @@
         .dm-container {
             margin-top: 10px;
             background-color: #F0F2F5;
-            height: 250px;
+            height: 300px;
             padding: 5px 10px;
             overflow: scroll;
             border-radius: 3px;
@@ -115,6 +115,11 @@
             border-radius: 5px;
             display: flex;
         }
+
+        :root {
+            --van-popup-background: transparent;
+        }
+
     </style>
 </head>
 <body>
@@ -174,7 +179,7 @@
                         v-show="state.micSwitch" plain type="primary" class="switch-button"
                         @click="handleSwitchMic">
                     <template #icon>
-                        <img style="width: 2rem" src="./mic.png" alt="">
+                        <img style="width: 2rem" src="./img/mic.png" alt="">
                     </template>
                     麦克 ON
                 </van-button>
@@ -183,7 +188,7 @@
                         v-show="!state.micSwitch" plain type="default" class="switch-button" icon="cross"
                         @click="handleSwitchMic">
                     <template #icon>
-                        <img style="width: 2rem" src="./mic-off.png" alt="">
+                        <img style="width: 2rem" src="./img/mic-off.png" alt="">
                     </template>
                     麦克 OFF
                 </van-button>
@@ -205,17 +210,45 @@
                 </div>
             </div>
             <div class="dm-container" @touchstart="handleDmScrollStart" @touchend="handleDmScrollEnd">
-                <div style="display: flex;margin-top: 5px" v-for="msg in messages" :key="msg.data.msg_id">
-                    <div><img
+                <div style="display: flex;margin-top: 10px" v-for="msg in messages" :key="msg.data.msg_id">
+                    <div v-if="msg.cmd === 'LIVE_OPEN_PLATFORM_GUARD'"><img
+                            style="border-radius: 50%;"
+                            width="30" height="30"
+                            :src="'/icon?path=' + encodeURIComponent(msg.data.user_info.uface)"
+                            alt=""></div>
+                    <div v-else><img
                             style="border-radius: 50%;"
                             width="30" height="30"
                             :src="'/icon?path=' + encodeURIComponent(msg.data.uface)"
                             alt=""></div>
-                    <div style="margin-left: 5px" >
+
+                    <div v-if="msg.cmd === 'LIVE_OPEN_PLATFORM_GUARD'" style="margin-left: 5px">
+                        <div style="margin-bottom: 3px">{{ msg.data.user_info.uname }}</div>
+                        <div v-if="msg.data.guard_level === 3" style="display: flex;align-items: center">
+                            <img src="./img/ic-caption.png" alt="" width="30">
+                            <div style="font-size: 15px; font-weight: 800;margin-left: 5px;color: red">开通舰长</div>
+                        </div>
+                        <div v-if="msg.data.guard_level === 2" style="display: flex;align-items: center">
+                            <img src="./img/ic-prefect.png" alt="" width="30">
+                            <div style="font-size: 15px; font-weight: 800;margin-left: 5px;color: red">开通提督</div>
+                        </div>
+                        <div v-if="msg.data.guard_level === 1" style="display: flex;align-items: center">
+                            <img src="./img/ic-governor.png" alt="" width="30">
+                            <div style="font-size: 15px; font-weight: 800;margin-left: 5px;color: red">开通总督</div>
+                        </div>
+                    </div>
+                    <div v-else style="margin-left: 5px">
                         <div style="margin-bottom: 3px">{{ msg.data.uname }}</div>
-                        <div v-if="msg.cmd == 'LIVE_OPEN_PLATFORM_DM'" class="dm-comment">{{ msg.data.msg }}</div>
+                        <div v-if="msg.cmd == 'LIVE_OPEN_PLATFORM_DM'" class="dm-comment">
+                            <div v-if="msg.data.dm_type === 0">
+                                {{ msg.data.msg }}
+                            </div>
+                            <div v-if="msg.data.dm_type === 1">
+                                <img :src="'/icon?path=' + encodeURIComponent(msg.data.emoji_img_url)" alt="" height="30">
+                            </div>
+                        </div>
                         <div v-else-if="msg.cmd == 'LIVE_OPEN_PLATFORM_LIKE'" class="dm-like">
-                            <img width="15" src="like.png" alt="" style="margin-right: 5px">赞 x {{
+                            <img width="15" src="./img/like.png" alt="" style="margin-right: 5px">赞 x {{
                             msg.data.like_count}}
                         </div>
                         <div v-else-if="msg.cmd == 'LIVE_OPEN_PLATFORM_SEND_GIFT'" class="dm-gift">
@@ -228,24 +261,36 @@
                             <div style="font-weight: 700;margin-left: 5px">{{msg.data.message}}</div>
                         </div>
                     </div>
-                </div>
-                <div ref="msgContainerRef"></div>
-            </div>
 
+                </div>
+                <div style="margin-top: 15px" ref="msgContainerRef"></div>
+            </div>
         </div>
     </div>
-    <!--    <van-notice-bar color="#1989fa" background="#ecf9ff">-->
-    <!--        <template v-slot:left-icon>-->
-    <!--            <img-->
-    <!--                    style="border-radius: 50%;"-->
-    <!--                    width="30" height="30"-->
-    <!--                    :src="'/icon?path=' + encodeURIComponent(giftMessage.data.uface)"-->
-    <!--                    alt="">-->
-    <!--            <span style="display: inline-block;font-weight: 600;margin: 0 10px">{{giftMessage.data.uname}}:</span>-->
-    <!--        </template>-->
-    <!--        <div>{{}}</div>-->
-    <!--    </van-notice-bar>-->
-    <van-popup v-model:show="showGuard" position="top" :style="{ height: '30%' }" >
+
+    <van-popup v-model:show="showGuard" :close-on-click-overlay="false">
+        <div style="text-align: center;background-color:transparent;">
+            <img v-if="guardInfo.guard_level === 1" src="./img/ic-caption.png" alt="">
+            <img v-else-if="guardInfo.guard_level === 2" src="./img/ic-prefect.png" alt="">
+            <img v-else-if="guardInfo.guard_level === 3" src="./img/ic-governor.png" alt="">
+            <div style="display: flex; align-items: center;justify-content: center;margin-top: 15px">
+                <img
+                        style="border-radius: 50%;"
+                        width="30" height="30"
+                        :src="'/icon?path=' + encodeURIComponent(guardInfo.uface)"
+                        alt="">
+                <h2 style="color: #1989fa;margin-left: 5px">{{guardInfo.uname}}</h2>
+            </div>
+            <div v-if="guardInfo.guard_level === 3"
+                 style="margin-top: 15px;text-align: center;color: red;font-weight: 800;font-size: 25px">——开通舰长——
+            </div>
+            <div v-else-if="guardInfo.guard_level === 2"
+                 style="margin-top: 15px;text-align: center;color: red;font-weight: 800;font-size: 25px">——开通提督——
+            </div>
+            <div v-else-if="guardInfo.guard_level === 1"
+                 style="margin-top: 15px;text-align: center;color: red;font-weight: 800;font-size: 25px">——开通总督——
+            </div>
+        </div>
     </van-popup>
 
 </div>
@@ -259,116 +304,11 @@
             let socket = null;
             const showGuard = ref(false);
             const messages = reactive([]);
-
-            setInterval(() => {
-                let msg = {
-                    "data": {
-                        "emoji_img_url": "",
-                        "fans_medal_level": 0,
-                        "fans_medal_name": "",
-                        "fans_medal_wearing_status": false,
-                        "guard_level": 0,
-                        "msg": "123",
-                        "timestamp": 1702549079,
-                        "uid": 759939,
-                        "uname": "Cliven_",
-                        "uface": "https://i0.hdslb.com/bfs/face/faff710e724d6ed48d9ab7de1e0c45b9d232e7e8.jpg",
-                        "dm_type": 0,
-                        "msg_id": "dadbb4d3-bbd1-41de-819c-b6a46da80619",
-                        "room_id": 22219
-                    }, "cmd": "LIVE_OPEN_PLATFORM_DM"
-                }
-                msg.data.msg_id = new Date().getTime() + 1
-                messages.push(msg)
-                msg = {
-                    "data": {
-                        "uname": "哔哩哔哩直播",
-                        "uid": 9617619,
-                        "uface": "https://i0.hdslb.com/bfs/face/8f6a614a48a3813d90da7a11894ae56a59396fcd.jpg",
-                        "timestamp": 1685946262,
-                        "like_text": "为主播点赞了",
-                        "like_count": 114,
-                        "fans_medal_wearing_status": false,
-                        "fans_medal_name": "",
-                        "fans_medal_level": 0,
-                        "msg_id": "57a7c676-ff00-4967-bb09-03e800ab0f4d",
-                        "room_id": 1
-                    },
-                    "cmd": "LIVE_OPEN_PLATFORM_LIKE"
-                }
-                msg.data.msg_id = new Date().getTime() + 1
-                messages.push(msg);
-                // msg = {
-                //     "cmd": "LIVE_OPEN_PLATFORM_SEND_GIFT",
-                //     "data": {
-                //         "room_id": 1,//直播间(演播厅模式则为演播厅直播间,非演播厅模式则为收礼直播间)
-                //         "uname": "哔哩哔哩直播",
-                //         "uid": 9617619,
-                //         "uface": "https://i0.hdslb.com/bfs/face/8f6a614a48a3813d90da7a11894ae56a59396fcd.jpg",
-                //         "gift_id": 0,//道具id(盲盒:爆出道具id)
-                //         "gift_name": "爆出道具名",//道具名(盲盒:爆出道具名)
-                //         "gift_num": 11,//赠送道具数量
-                //         "price": 0,//礼物单价(1000 = 1元 = 10电池),盲盒:爆出道具的价值
-                //         "paid": false,//是否是付费道具
-                //         "fans_medal_level": 0,//实际收礼人的勋章信息
-                //         "fans_medal_name": "粉丝勋章名", //粉丝勋章名
-                //         "fans_medal_wearing_status": true,//该房间粉丝勋章佩戴情况
-                //         "guard_level": 0,//room_id对应的大航海等级
-                //         "timestamp": 0,//收礼时间秒级时间戳
-                //         "msg_id": "",//消息唯一id
-                //         "anchor_info": {
-                //             "uid": 0,//收礼主播uid
-                //             "uname": "",//收礼主播昵称
-                //             "uface": "http://i0.hdslb.com/bfs/face/4add3acfc930fcd07d06ea5e10a3a377314141c2.jpg"//收礼主播头像
-                //         },
-                //         "gift_icon": "http://i1.hdslb.com/dksldksldksld.jpg", //道具icon  （新增）
-                //         "combo_gift": true,//是否是combo道具
-                //         "combo_info": { //ex：连击次数100，每个连击是批量送5个 既  5 * 100
-                //             "combo_base_num": 5,//每次连击赠送的道具数量
-                //             "combo_count": 100,//连击次数
-                //             "combo_id": "xxxxxx",//连击id
-                //             "combo_timeout": 3,//连击有效期秒
-                //         }
-                //     }
-                // }
-                // msg.data.msg_id = new Date().getTime() + 2
-                // messages.push(msg);
-                msg = {
-                    "cmd":"LIVE_OPEN_PLATFORM_SUPER_CHAT",
-                    "data":{
-                        "room_id":1,//直播间id
-                        "uname": "哔哩哔哩直播",
-                        "uid": 9617619,
-                        "uface": "https://i0.hdslb.com/bfs/face/8f6a614a48a3813d90da7a11894ae56a59396fcd.jpg",
-                        "message_id":0,//留言id(风控场景下撤回留言需要)
-                        "message":"你好",//留言内容
-                        "msg_id":"",//消息唯一id
-                        "rmb":10,//支付金额(元)
-                        "timestamp":0,//赠送时间秒级
-                        "start_time":0,//生效开始时间
-                        "end_time":0,//生效结束时间
-                        "guard_level": 2, //对应房间大航海登记    (新增)
-                        "fans_medal_level": 26, //对应房间勋章信息  (新增)
-                        "fans_medal_name": "aw4ifC", //对应房间勋章名字  (新增)
-                        "fans_medal_wearing_status": true //该房间粉丝勋章佩戴情况   (新增)
-                    }
-                }
-                msg.data.msg_id = new Date().getTime() + 2
-                messages.push(msg);
-
-                // 若msg.length > 10 则移除第一个元素
-                while (messages.length > 10) {
-                    messages.shift()
-                }
-                // console.log(msgContainerRef.value)
-                nextTick(() => {
-                    const el = msgContainerRef.value;
-                    if (el && suppressScroll.value === false) {
-                        el.scrollIntoView({behavior: 'smooth', block: "end"});
-                    }
-                });
-                showGuard.value = !showGuard.value;
-            }, 3000);
+            const guardInfo = reactive({
+                "uname": "",
+                "uface": "",
+                "guard_level": 3,
+            })
 
             const suppressScroll = ref(false);
 
@@ -445,9 +385,29 @@
 
             // 收到弹幕
             const handleDM = (event) => {
-                let obj = JSON.parse(event.data);
-                console.log("Message from server:", event.data);
-                console.log(obj);
+                let msg = JSON.parse(event.data);
+                // console.log("Message from server:", event.data);
+                // console.log(msg);
+                messages.push(msg);
+                // 若msg.length > 10 则移除第一个元素
+                while (messages.length > 10) {
+                    messages.shift()
+                }
+                if (msg.cmd === 'LIVE_OPEN_PLATFORM_GUARD') {
+                    guardInfo.uname = msg.data.user_info.uname;
+                    guardInfo.uface = msg.data.user_info.uface;
+                    guardInfo.guard_level = msg.data.guard_level;
+                    showGuard.value = true;
+                    setTimeout(() => {
+                        showGuard.value = false;
+                    }, 5000);
+                }
+                nextTick(() => {
+                    const el = msgContainerRef.value;
+                    if (el && suppressScroll.value === false) {
+                        el.scrollIntoView({behavior: 'smooth', block: "end"});
+                    }
+                });
             }
 
 
@@ -633,7 +593,7 @@
                 alwaysLightRef, alwaysLight,
                 now, streamDuration,
                 messages, msgContainerRef,
-                handleDmScrollStart, handleDmScrollEnd,showGuard
+                handleDmScrollStart, handleDmScrollEnd, showGuard, guardInfo
             }
         },
     };
