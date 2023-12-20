@@ -120,6 +120,17 @@
             --van-popup-background: transparent;
         }
 
+        .dm-reconnect {
+            text-align: center;
+            margin-top: 10px;
+            cursor: pointer;
+            user-select: none;
+            color: #1989fa;
+        }
+
+        .dm-reconnect:hover {
+            color: #409eff;
+        }
     </style>
 </head>
 <body>
@@ -244,7 +255,8 @@
                                 {{ msg.data.msg }}
                             </div>
                             <div v-if="msg.data.dm_type === 1">
-                                <img :src="'/icon?path=' + encodeURIComponent(msg.data.emoji_img_url)" alt="" height="30">
+                                <img :src="'/icon?path=' + encodeURIComponent(msg.data.emoji_img_url)" alt=""
+                                     height="30">
                             </div>
                         </div>
                         <div v-else-if="msg.cmd == 'LIVE_OPEN_PLATFORM_LIKE'" class="dm-like">
@@ -264,6 +276,9 @@
 
                 </div>
                 <div style="margin-top: 15px" ref="msgContainerRef"></div>
+            </div>
+            <div class="dm-reconnect" @click="handleConnDM">重连弹幕
+                <van-icon name="replay"/>
             </div>
         </div>
     </div>
@@ -312,7 +327,7 @@
 
             const suppressScroll = ref(false);
 
-            const alwaysLight = ref(true);
+            const alwaysLight = ref(false);
             const loadingCapture = ref(false);
             const loadingSwitchMic = ref(false);
             const loadingSwitchRecord = ref(false);
@@ -332,19 +347,8 @@
             });
 
             onMounted(() => {
-                // syncState();
-
-                let new_uri = "";
-                if (window.location.protocol === "https:") {
-                    new_uri = "wss:";
-                } else {
-                    new_uri = "ws:";
-                }
-                new_uri += "//" + window.location.host + "/dm";
-                socket = new WebSocket(new_uri);
-
-                socket.addEventListener("message", handleDM);
-
+                syncState();
+                handleConnDM(true);
                 // 当前时间计时器
                 if (tick) {
                     clearInterval(tick);
@@ -382,6 +386,26 @@
                     document.documentElement.requestFullscreen();
                 }, false);
             });
+
+            const handleConnDM = (hideHit) => {
+                if (socket != null) {
+                    socket.close();
+                }
+
+                let new_uri = "";
+                if (window.location.protocol === "https:") {
+                    new_uri = "wss:";
+                } else {
+                    new_uri = "ws:";
+                }
+                new_uri += "//" + window.location.host + "/dm";
+                socket = new WebSocket(new_uri);
+
+                socket.addEventListener("message", handleDM);
+                if (hideHit !== true) {
+                    vant.showToast('弹幕已连接');
+                }
+            }
 
             // 收到弹幕
             const handleDM = (event) => {
@@ -593,7 +617,7 @@
                 alwaysLightRef, alwaysLight,
                 now, streamDuration,
                 messages, msgContainerRef,
-                handleDmScrollStart, handleDmScrollEnd, showGuard, guardInfo
+                handleDmScrollStart, handleDmScrollEnd, showGuard, guardInfo, handleConnDM
             }
         },
     };
