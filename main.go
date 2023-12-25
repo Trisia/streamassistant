@@ -10,6 +10,7 @@ import (
 	"github.com/valyala/fasthttp"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -123,8 +124,22 @@ func main() {
 		return err
 	})
 
-	addr := ":80"
-	log.Printf("Stream Assistant V%s Start at http://127.0.0.1%s\n", Version, addr)
+	addr := ":30080"
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("请通过手机浏览器访问下面地址:")
+	for _, a := range addrs {
+		if ipnet, ok := a.(*net.IPNet); ok {
+			if ipnet.IP.To4() != nil && ipnet.IP.String() != "" {
+				if strings.HasPrefix(ipnet.IP.String(), "169.") || strings.HasPrefix(ipnet.IP.String(), "127.") {
+					continue
+				}
+				log.Printf("\t\thttp://%s%s\n", ipnet.IP.String(), addr)
+			}
+		}
+	}
 	_ = app.Listen(addr)
 }
 
