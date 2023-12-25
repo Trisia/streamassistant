@@ -2,7 +2,6 @@ package main
 
 import (
 	"embed"
-	"flag"
 	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/gofiber/fiber/v2"
@@ -15,13 +14,19 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
-const Version = "1.1.0"
+const (
+	Version   = "1.1.0"
+	ImagePath = "截图"
+	LogPaths  = "logs"
+)
 
-var ImagePath = "截图"
-var LogPaths = "logs"
+var (
+	IdCode = "" // 主播身份码
+)
 
 var (
 	micSwitch          = true
@@ -33,14 +38,29 @@ var (
 //go:embed static
 var viewsFS embed.FS
 
-var verFlag = flag.Bool("v", false, "show version")
+//var verFlag = flag.Bool("v", false, "show version")
 
 func main() {
-	flag.Parse()
-	if *verFlag {
-		fmt.Printf("\nStrean Assustant Version: %s\n", Version)
+	fmt.Printf("Strean Assustant Version: %s\n\n", Version)
+	//flag.Parse()
+	//if *verFlag {
+	//	return
+	//}
+
+	// 判断 os.Args 是否有 code= 或 -code= 参数
+	for i := range os.Args {
+		if strings.Contains(os.Args[i], "code=") {
+			offset := strings.Index(os.Args[i], "code=")
+			IdCode = os.Args[i][offset+5:]
+			break
+		}
+	}
+
+	if IdCode == "" {
+		log.Println("请在启动参数中指定主播身份码 start.exe code=XXX")
 		return
 	}
+
 	_ = os.Mkdir(ImagePath, os.ModePerm)
 	_ = os.Mkdir(LogPaths, os.ModePerm)
 	logger := log.Default()

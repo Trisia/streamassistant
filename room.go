@@ -11,11 +11,9 @@ import (
 )
 
 const (
-	AccessKey            = ""                              //access_key
-	AccessKeySecret      = ""                              //access_key_secret
-	OpenPlatformHttpHost = "https://live-open.biliapi.com" // 开放平台 (线上环境)
-	IdCode               = ""                              // 主播身份码
-	AppId                = 0                               // 应用id
+	AccessKey       = "" //access_key
+	AccessKeySecret = "" //access_key_secret
+	AppId           = 0  // 应用id
 )
 
 // InitLive 初始化直播
