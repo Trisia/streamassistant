@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"encoding/json"
 	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/gofiber/fiber/v2"
@@ -20,14 +21,21 @@ import (
 )
 
 const (
-	Version   = "1.1.0"
+	Version   = "1.1.1"
 	ImagePath = "截图"
 	LogPaths  = "logs"
 )
 
-var (
-	IdCode = "" // 主播身份码
-)
+// Config 配置
+type Config struct {
+	AccessKey       string // access_key
+	AccessKeySecret string // access_key_secret
+	IdCode          string //  主播身份码
+	AppID           int64  // 应用id
+}
+
+// Cfg 配置实体
+var Cfg = &Config{}
 
 var (
 	micSwitch          = true
@@ -52,13 +60,23 @@ func main() {
 	for i := range os.Args {
 		if strings.Contains(os.Args[i], "code=") {
 			offset := strings.Index(os.Args[i], "code=")
-			IdCode = os.Args[i][offset+5:]
+			Cfg.IdCode = os.Args[i][offset+5:]
 			break
 		}
 	}
 
-	if IdCode == "" {
-		log.Println("请在启动参数中指定主播身份码 start.exe code=XXX")
+	cfgBin, _ := os.ReadFile("config.json")
+	if len(cfgBin) > 0 {
+		err := json.Unmarshal(cfgBin, Cfg)
+		if err != nil {
+			log.Fatal("读取配置文件失败", err)
+		}
+	} else {
+		log.Fatal("未找到配置文件")
+	}
+
+	if Cfg.IdCode == "" {
+		log.Println("请在启动参数或配置文件中指定主播身份码 start.exe code=XXX")
 		return
 	}
 
