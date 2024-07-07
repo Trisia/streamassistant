@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	Version   = "1.1.1"
+	Version   = "1.1.2"
 	ImagePath = "截图"
 	LogPaths  = "logs"
 )
