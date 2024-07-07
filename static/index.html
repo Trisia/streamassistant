@@ -82,7 +82,7 @@
         .dm-container {
             margin-top: 10px;
             background-color: #F0F2F5;
-            height: 300px;
+            height: 240px;
             padding: 5px 10px;
             overflow: scroll;
             border-radius: 3px;
@@ -211,6 +211,14 @@
                         plain type="primary" class="switch-button" icon="photograph"
                         @click="handleCapture">
                     截图
+                </van-button>
+            </div>
+            <div style="margin-top: 15px;display: flex">
+                <van-button icon="list-switch" style="flex: 1;" size="small" @click="handleTabSwitch">
+                    切换窗口
+                </van-button>
+                <van-button icon="bars" style="flex: 1;margin-left: 5px" size="small" @click="handlePushWindowMenu">
+                    Windows
                 </van-button>
             </div>
             <div style="text-align: center">
@@ -606,6 +614,13 @@
                 suppressScroll.value = false;
             }
 
+            const handlePushWindowMenu = () => {
+                axios.get('/win')
+            }
+
+            const handleTabSwitch = () => {
+                axios.get('/tab-switch')
+            }
 
             return {
                 state,
@@ -614,10 +629,11 @@
                 handleRecordTouchStart, handleRecordTouchEnd,
                 handleCapture,
                 handleSwitchMic,
+                handlePushWindowMenu, handleTabSwitch,
                 alwaysLightRef, alwaysLight,
                 now, streamDuration,
                 messages, msgContainerRef,
-                handleDmScrollStart, handleDmScrollEnd, showGuard, guardInfo, handleConnDM
+                handleDmScrollStart, handleDmScrollEnd, showGuard, guardInfo, handleConnDM,
             }
         },
     };

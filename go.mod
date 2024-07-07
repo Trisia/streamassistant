@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/go-vgo/robotgo v1.0.0-rc2.1
 	github.com/gofiber/contrib/websocket v1.2.2
-	github.com/gofiber/fiber/v2 v2.52.4
+	github.com/gofiber/fiber/v2 v2.52.5
 	github.com/valyala/fasthttp v1.51.0
 	github.com/vtb-link/bianka v0.2.2
 )

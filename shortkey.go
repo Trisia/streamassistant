@@ -26,6 +26,11 @@ func (s *ShortKeyHandler) Register(app *fiber.App) {
 	app.Get("/stream-switch", skh.handleStreamSwitch)
 	// 麦克风 开关
 	app.Get("/mic-switch", skh.handleMicSwitch)
+
+	// Windows键
+	app.Get("/win", skh.handleWindows)
+	// 切换窗口
+	app.Get("/tab-switch", skh.handleTabSwitch)
 }
 
 // handleCaptureScreen 截图
@@ -75,4 +80,16 @@ func (s *ShortKeyHandler) handleMicSwitch(c *fiber.Ctx) error {
 		log.Println("mic switch to: OFF")
 	}
 	return c.JSON(micSwitch)
+}
+
+// 按下windows键
+func (s *ShortKeyHandler) handleWindows(ctx *fiber.Ctx) error {
+	_ = robotgo.KeyTap("cmd")
+	return nil
+}
+
+// 切换Tab
+func (s *ShortKeyHandler) handleTabSwitch(ctx *fiber.Ctx) error {
+	_ = robotgo.KeyTap("tab", "alt")
+	return nil
 }
